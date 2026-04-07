@@ -1,0 +1,22 @@
+# 依存パッケージ
+node_modules/
+
+# ビルド成果物
+dist/
+
+# テスト関連
+coverage/
+playwright-report/
+test-results/
+
+# エディタ
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 環境変数
+.env
+.env.local
