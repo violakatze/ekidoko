@@ -32,7 +32,7 @@ export const QuestionPanel = ({
       sx={{
         position: 'absolute',
         top: 16,
-        left: 16,
+        left: 56,
         zIndex: 500,
         p: 2,
         minWidth: 240,

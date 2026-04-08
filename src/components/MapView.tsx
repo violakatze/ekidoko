@@ -11,9 +11,9 @@ type MapViewProps = {
   mode: GameMode;
   baseUrl: string;
   stations: StationFeature[];
-  correctFeatureId?: string;
+  correctStationGroupName?: string;
   wrongFeatureIds?: string[];
-  onStationClick?: (featureId: string) => void;
+  onStationClick?: (featureId: string, stationGroupName: string) => void;
 };
 
 /**
@@ -23,7 +23,7 @@ export const MapView = ({
   mode,
   baseUrl,
   stations,
-  correctFeatureId,
+  correctStationGroupName,
   wrongFeatureIds,
   onStationClick,
 }: MapViewProps) => {
@@ -37,18 +37,18 @@ export const MapView = ({
     mode,
     baseUrl,
     stations,
-    correctFeatureId,
+    correctStationGroupName,
     wrongFeatureIds,
     onStationClick,
     onHover: mode === 'browse' ? handleHover : undefined,
   });
 
-  // 正解確定時に正解駅へ自動移動
+  // 正解確定時に正解駅（グループ内の最初の1件）へ自動移動
   useEffect(() => {
-    if (!correctFeatureId) return;
-    const target = stations.find((s) => s.featureId === correctFeatureId);
+    if (!correctStationGroupName) return;
+    const target = stations.find((s) => s.stationGroupName === correctStationGroupName);
     if (target) flyToStation(target);
-  }, [correctFeatureId, stations, flyToStation]);
+  }, [correctStationGroupName, stations, flyToStation]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>

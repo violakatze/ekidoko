@@ -90,17 +90,18 @@ export const useGame = (mode: GameMode, allStations: StationFeature[]) => {
 
   /**
    * 駅をクリックしたときの処理
-   * @param featureId - クリックした駅のfeatureId
+   * @param featureId - クリックした駅のfeatureId（ハイライト用）
+   * @param stationGroupName - クリックした駅のN02_005g（正解判定用）
    * @returns クリック結果 ('correct' | 'wrong' | 'resolved' | 'browse')
    */
   const handleStationClick = useCallback(
-    (featureId: string): 'correct' | 'wrong' | 'resolved' | 'browse' => {
+    (featureId: string, stationGroupName: string): 'correct' | 'wrong' | 'resolved' | 'browse' => {
       if (mode === 'browse') return 'browse';
 
       const q = gameState.questions[gameState.currentIndex];
       if (!q || q.resolved) return 'resolved';
 
-      if (featureId === q.station.featureId) {
+      if (stationGroupName === q.station.stationGroupName) {
         resolveQuestion(true);
         return 'correct';
       }

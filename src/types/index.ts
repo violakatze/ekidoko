@@ -5,6 +5,8 @@ export type GameMode = 'level1' | 'level2' | 'level3' | 'browse';
 export type StationFeature = {
   /** 駅名 (N02_005) */
   stationName: string;
+  /** グループ駅名 (N02_005g)：正解判定に使用 */
+  stationGroupName: string;
   /** 路線名 (N02_003) */
   lineName: string;
   /** 会社名 (N02_004) */

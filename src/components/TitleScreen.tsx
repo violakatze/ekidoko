@@ -1,6 +1,11 @@
-import { Box, Typography, Button, Paper, Divider, IconButton, Tooltip } from '@mui/material';
+import { useState } from 'react';
+import {
+  Box, Typography, Button, Paper, Divider, IconButton, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Link,
+} from '@mui/material';
 import TrainIcon from '@mui/icons-material/Train';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 import type { GameMode, HighScores } from '../types';
 
@@ -47,6 +52,8 @@ const LevelButton = ({ label, description, score, onClick }: LevelButtonProps) =
  * タイトル画面
  */
 export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenProps) => {
+  const [creditOpen, setCreditOpen] = useState(false);
+
   return (
     <Box
       display="flex"
@@ -75,13 +82,13 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
         <Box display="flex" flexDirection="column" gap={1.5}>
           <LevelButton
             label="レベル1"
-            description="背景地図あり・都道府県あり・路線あり"
+            description="背景地図あり・路線あり"
             score={highScores.level1 > 0 ? highScores.level1 : null}
             onClick={() => onStart('level1')}
           />
           <LevelButton
             label="レベル2"
-            description="背景地図なし・都道府県あり・路線あり"
+            description="都道府県あり・路線あり"
             score={highScores.level2 > 0 ? highScores.level2 : null}
             onClick={() => onStart('level2')}
           />
@@ -105,8 +112,13 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
           </Button>
         </Box>
 
-        {/* ハイスコアリセット */}
-        <Box display="flex" justifyContent="flex-end" mt={2}>
+        {/* ハイスコアリセット・データ出典 */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+          <Tooltip title="データ出典">
+            <IconButton size="small" color="default" onClick={() => setCreditOpen(true)}>
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="ハイスコアをリセット">
             <IconButton size="small" color="default" onClick={onResetScores}>
               <DeleteOutlineIcon fontSize="small" />
@@ -114,6 +126,58 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
           </Tooltip>
         </Box>
       </Paper>
+
+      {/* データ出典ダイアログ */}
+      <Dialog open={creditOpen} onClose={() => setCreditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>データ出典</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" gutterBottom>
+            本アプリは以下の国土数値情報を使用しています。
+          </Typography>
+
+          <Box component="ul" sx={{ pl: 2, mt: 1, mb: 0 }}>
+            <Box component="li" mb={1}>
+              <Typography variant="body2">
+                「国土数値情報（行政区域データ）」（国土交通省）
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                2025年 全国データ
+              </Typography>
+              <Link
+                href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2025.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="body2"
+              >
+                https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2025.html
+              </Link>
+            </Box>
+            <Box component="li">
+              <Typography variant="body2">
+                「国土数値情報（鉄道データ）」（国土交通省）
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                2024年 全国データ
+              </Typography>
+              <Link
+                href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2024.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="body2"
+              >
+                https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2024.html
+              </Link>
+            </Box>
+          </Box>
+
+          <Typography variant="caption" color="text.secondary" display="block" mt={2}>
+            上記データをもとに加工して作成
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreditOpen(false)}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

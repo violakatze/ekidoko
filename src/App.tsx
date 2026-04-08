@@ -111,6 +111,7 @@ export const App = () => {
         stations={stations}
         baseUrl={BASE_URL}
         onFinish={handleFinish}
+        onBackToTitle={gameMode === 'browse' ? handleBackToTitle : undefined}
       />
     );
   }

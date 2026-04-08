@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
-import { Box } from '@mui/material';
+import { Box, Button } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import type { GameMode, StationFeature } from '../types';
 import { useGame } from '../hooks/useGame';
@@ -11,12 +12,13 @@ type GameScreenProps = {
   stations: StationFeature[];
   baseUrl: string;
   onFinish: (score: number) => void;
+  onBackToTitle?: () => void;
 };
 
 /**
  * ゲーム画面（地図 + 出題パネル）
  */
-export const GameScreen = ({ mode, stations, baseUrl, onFinish }: GameScreenProps) => {
+export const GameScreen = ({ mode, stations, baseUrl, onFinish, onBackToTitle }: GameScreenProps) => {
   const { gameState, currentQuestion, timeLeft, isFinished, handleStationClick, goToNextQuestion } =
     useGame(mode, stations);
 
@@ -30,8 +32,8 @@ export const GameScreen = ({ mode, stations, baseUrl, onFinish }: GameScreenProp
   }, [isFinished, score, onFinish]);
 
   const handleStationClickWrapper = useCallback(
-    (featureId: string) => {
-      handleStationClick(featureId);
+    (featureId: string, stationGroupName: string) => {
+      handleStationClick(featureId, stationGroupName);
     },
     [handleStationClick],
   );
@@ -40,8 +42,8 @@ export const GameScreen = ({ mode, stations, baseUrl, onFinish }: GameScreenProp
     goToNextQuestion();
   }, [goToNextQuestion]);
 
-  const correctFeatureId = currentQuestion?.resolved
-    ? currentQuestion.station.featureId
+  const correctStationGroupName = currentQuestion?.resolved
+    ? currentQuestion.station.stationGroupName
     : undefined;
   const wrongFeatureIds = currentQuestion?.wrongFeatureIds ?? [];
 
@@ -51,7 +53,7 @@ export const GameScreen = ({ mode, stations, baseUrl, onFinish }: GameScreenProp
         mode={mode}
         baseUrl={baseUrl}
         stations={stations}
-        correctFeatureId={correctFeatureId}
+        correctStationGroupName={correctStationGroupName}
         wrongFeatureIds={wrongFeatureIds}
         onStationClick={mode !== 'browse' ? handleStationClickWrapper : undefined}
       />
@@ -65,6 +67,25 @@ export const GameScreen = ({ mode, stations, baseUrl, onFinish }: GameScreenProp
           score={score}
           onNext={handleNext}
         />
+      )}
+
+      {mode === 'browse' && onBackToTitle && (
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={onBackToTitle}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 56,
+            zIndex: 500,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            color: 'text.primary',
+            '&:hover': { backgroundColor: 'rgba(255,255,255,1)' },
+          }}
+        >
+          タイトルに戻る
+        </Button>
       )}
     </Box>
   );

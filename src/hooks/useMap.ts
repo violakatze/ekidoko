@@ -25,10 +25,12 @@ const INITIAL_ZOOM = 12;
 const PREFECTURE_BORDER_COLOR = '#C71585';
 const PREFECTURE_FILL_COLOR = 'rgba(255, 182, 193, 0.5)';
 const STATION_COLOR = '#ffffff';
+const STATION_OUTLINE_COLOR = '#888888';
 const CORRECT_COLOR = '#00C853';
 const WRONG_COLOR = '#F44336';
 const RAILROAD_WIDTH = 2;
 const STATION_WIDTH = 6; // 路線より太い線幅
+const STATION_OUTLINE_WIDTH = STATION_WIDTH + 3; // 縁取り用の外側線幅
 
 /** 都道府県スタイル */
 const prefectureStyle = new Style({
@@ -36,10 +38,11 @@ const prefectureStyle = new Style({
   stroke: new Stroke({ color: PREFECTURE_BORDER_COLOR, width: 1.5 }),
 });
 
-/** 駅のデフォルトスタイル（路線より太い線） */
-const stationDefaultStyle = new Style({
-  stroke: new Stroke({ color: STATION_COLOR, width: STATION_WIDTH }),
-});
+/** 駅のデフォルトスタイル（縁取り＋白） */
+const stationDefaultStyle = [
+  new Style({ stroke: new Stroke({ color: STATION_OUTLINE_COLOR, width: STATION_OUTLINE_WIDTH }) }),
+  new Style({ stroke: new Stroke({ color: STATION_COLOR, width: STATION_WIDTH }) }),
+];
 
 /** 正解駅スタイル */
 const correctStationStyle = new Style({
@@ -55,11 +58,11 @@ type MapOptions = {
   mode: GameMode;
   baseUrl: string;
   stations: StationFeature[];
-  /** 正解駅のfeatureId（確定後に設定） */
-  correctFeatureId?: string;
+  /** 正解駅のN02_005g（確定後に設定）：同値の駅を全てハイライト */
+  correctStationGroupName?: string;
   /** 誤クリック駅のfeatureId一覧 */
   wrongFeatureIds?: string[];
-  onStationClick?: (featureId: string) => void;
+  onStationClick?: (featureId: string, stationGroupName: string) => void;
   onHover?: (info: HoverInfo | null) => void;
 };
 
@@ -90,8 +93,8 @@ export const useMap = (targetId: string, options: MapOptions) => {
       );
     }
 
-    // レベル1・2・閲覧モード: 都道府県レイヤー
-    if (mode !== 'level3') {
+    // レベル2のみ: 都道府県レイヤー
+    if (mode === 'level2') {
       layers.push(
         new VectorTileLayer({
           source: new PMTilesVectorSource({ url: `${baseUrl}data/prefecture.pmtiles` }),
@@ -123,6 +126,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
       const f = new Feature({
         geometry: new LineString(coords),
         stationName: s.stationName,
+        stationGroupName: s.stationGroupName,
         lineName: s.lineName,
         companyName: s.companyName,
       });
@@ -135,8 +139,9 @@ export const useMap = (targetId: string, options: MapOptions) => {
       source: stationSource,
       style: (feature) => {
         const fid = String(feature.getId() ?? '');
-        const { correctFeatureId: cid, wrongFeatureIds: wids } = optionsRef.current;
-        if (fid === cid) return correctStationStyle;
+        const props = feature.getProperties() as { stationGroupName?: string };
+        const { correctStationGroupName: cgn, wrongFeatureIds: wids } = optionsRef.current;
+        if (cgn !== undefined && props.stationGroupName === cgn) return correctStationStyle;
         if (wids?.includes(fid)) return wrongStationStyle;
         return stationDefaultStyle;
       },
@@ -166,7 +171,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
   // 正解・誤答状態が変化したとき駅レイヤーを再描画
   useEffect(() => {
     stationLayerRef.current?.changed();
-  }, [options.correctFeatureId, options.wrongFeatureIds]);
+  }, [options.correctStationGroupName, options.wrongFeatureIds]);
 
   // クリックイベント登録
   useEffect(() => {
@@ -179,8 +184,9 @@ export const useMap = (targetId: string, options: MapOptions) => {
         e.pixel,
         (feature) => {
           const id = feature.getId();
-          if (id !== undefined) {
-            onStationClick(String(id));
+          const props = feature.getProperties() as { stationGroupName?: string };
+          if (id !== undefined && props.stationGroupName !== undefined) {
+            onStationClick(String(id), props.stationGroupName);
             return true;
           }
         },

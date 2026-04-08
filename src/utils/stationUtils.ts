@@ -4,9 +4,10 @@ import type { StationFeature } from '../types';
 
 /** GeoJSONのプロパティ型 */
 type StationProperties = {
-  N02_005: string; // 駅名
-  N02_003: string; // 路線名
-  N02_004: string; // 会社名
+  N02_005: string;  // 駅名
+  N02_005g: string; // グループ駅名（正解判定用）
+  N02_003: string;  // 路線名
+  N02_004: string;  // 会社名
 };
 
 /** LineStringの中点座標を計算する */
@@ -35,9 +36,10 @@ export const loadStations = async (baseUrl: string): Promise<StationFeature[]> =
     const props = f.properties;
     if (!props) return;
     const stationName = props.N02_005;
+    const stationGroupName = props.N02_005g;
     const lineName = props.N02_003;
     const companyName = props.N02_004;
-    if (!stationName || !lineName || !companyName) return;
+    if (!stationName || !stationGroupName || !lineName || !companyName) return;
 
     const rawCoords = f.geometry.coordinates;
     const lineCoordinates = rawCoords.map((c): [number, number] => [c[0]!, c[1]!]);
@@ -45,6 +47,7 @@ export const loadStations = async (baseUrl: string): Promise<StationFeature[]> =
 
     features.push({
       stationName,
+      stationGroupName,
       lineName,
       companyName,
       lineCoordinates,
