@@ -17,10 +17,8 @@ test.describe('タイトル画面', () => {
   });
 
   test('レベル1を選択するとゲーム画面に遷移する', async ({ page }) => {
-    // 駅データの読み込みを待つ
-    await page.waitForSelector('[id="map-container"]', { timeout: 30000 });
-    // まずタイトル画面が表示されることを確認
-    await expect(page.getByRole('button', { name: /レベル1/ })).toBeVisible();
+    // レベルボタンが表示されるまで待つ（＝駅データ読み込み完了）
+    await expect(page.getByRole('button', { name: /レベル1/ })).toBeVisible({ timeout: 30000 });
     await page.getByRole('button', { name: /レベル1/ }).click();
     // 地図コンテナが表示されることを確認
     await expect(page.locator('#map-container')).toBeVisible({ timeout: 10000 });
