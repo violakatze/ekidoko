@@ -94,7 +94,7 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
           />
           <LevelButton
             label="レベル3"
-            description="路線のみ表示"
+            description="路線のみ表示(路線カラーなし)"
             score={highScores.level3 > 0 ? highScores.level3 : null}
             onClick={() => onStart('level3')}
           />

@@ -111,7 +111,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
           const props = feature.getProperties() as { N02_003?: string; N02_004?: string };
           return new Style({
             stroke: new Stroke({
-              color: getLineColor(props.N02_003 ?? '', props.N02_004 ?? ''),
+              color: getLineColor(props.N02_003 ?? '', props.N02_004 ?? '', mode === 'level3'),
               width: RAILROAD_WIDTH,
             }),
           });
