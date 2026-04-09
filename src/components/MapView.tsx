@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { Box } from '@mui/material';
 
 import type { GameMode, HoverInfo, StationFeature } from '../types';
@@ -50,6 +50,22 @@ export const MapView = ({
     const target = stations.find((s) => s.stationGroupName === correctStationGroupName);
     if (target) flyToStation(target);
   }, [correctStationGroupName, stations, flyToStation]);
+
+  // 初回マウント時と問題遷移時（正解確定 → 次の問題）に地図コンテナへフォーカスを戻す
+  // これにより、「次の問題へ」ボタンクリック後もホイールズームが即座に動作する
+  const isMountedRef = useRef(false);
+  const prevGroupNameRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const isMount = !isMountedRef.current;
+    const isQuestionTransition =
+      prevGroupNameRef.current !== undefined && correctStationGroupName === undefined;
+    isMountedRef.current = true;
+    prevGroupNameRef.current = correctStationGroupName;
+
+    if (isMount || isQuestionTransition) {
+      document.getElementById('map-container')?.focus({ preventScroll: true });
+    }
+  }, [correctStationGroupName]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
