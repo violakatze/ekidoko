@@ -4,6 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Link,
 } from '@mui/material';
 import TrainIcon from '@mui/icons-material/Train';
+import MapIcon from '@mui/icons-material/Map';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
@@ -94,21 +95,31 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
           />
           <LevelButton
             label="レベル3"
-            description="路線のみ表示(路線カラーなし)"
+            description="路線のみ表示（路線カラーなし）"
             score={highScores.level3 > 0 ? highScores.level3 : null}
             onClick={() => onStart('level3')}
           />
 
           <Divider sx={{ my: 0.5 }} />
 
+          {/* 閲覧モード：ゲームと視覚的に区別するため別スタイルにする */}
           <Button
             variant="outlined"
+            color="secondary"
             fullWidth
             size="large"
+            startIcon={<MapIcon />}
             onClick={() => onStart('browse')}
-            sx={{ py: 1.5 }}
+            sx={{ py: 1.5, justifyContent: 'flex-start', px: 3 }}
           >
-            閲覧モード
+            <Box textAlign="left">
+              <Typography variant="body1" fontWeight="bold" component="span" display="block">
+                閲覧モード
+              </Typography>
+              <Typography variant="caption" color="text.secondary" component="span" display="block">
+                出題なし・スコアなし。路線や駅をホバーで確認
+              </Typography>
+            </Box>
           </Button>
         </Box>
 

@@ -15,22 +15,26 @@ import { unByKey } from 'ol/Observable';
 
 import type { GameMode, HoverInfo, StationFeature } from '../types';
 import { getLineColor } from '../data/railwayColors';
+import {
+  PREFECTURE_BORDER_COLOR,
+  PREFECTURE_FILL_COLOR,
+  STATION_COLOR,
+  STATION_OUTLINE_COLOR,
+  CORRECT_COLOR,
+  WRONG_COLOR,
+  RAILROAD_WIDTH,
+  STATION_WIDTH,
+  STATION_OUTLINE_WIDTH,
+  OSM_OPACITY,
+} from '../constants/mapStyles';
 
 // 東京都庁の座標
 const TOKYO_LON = 139.6922;
 const TOKYO_LAT = 35.6896;
 const INITIAL_ZOOM = 12;
 
-// スタイル定数
-const PREFECTURE_BORDER_COLOR = '#C71585';
-const PREFECTURE_FILL_COLOR = 'rgba(255, 182, 193, 0.5)';
-const STATION_COLOR = '#ffffff';
-const STATION_OUTLINE_COLOR = '#888888';
-const CORRECT_COLOR = '#00C853';
-const WRONG_COLOR = '#F44336';
-const RAILROAD_WIDTH = 2;
-const STATION_WIDTH = 6; // 路線より太い線幅
-const STATION_OUTLINE_WIDTH = STATION_WIDTH + 3; // 縁取り用の外側線幅
+// キーボードナビゲーションのパン量（ピクセル）
+const KEYBOARD_PAN_PX = 100;
 
 /** 都道府県スタイル */
 const prefectureStyle = new Style({
@@ -74,8 +78,10 @@ type MapOptions = {
 export const useMap = (targetId: string, options: MapOptions) => {
   const mapRef = useRef<Map | null>(null);
   const stationLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const stationSourceRef = useRef<VectorSource | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const hoverDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (mapRef.current) return;
@@ -88,7 +94,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
       layers.push(
         new TileLayer({
           source: new OSM(),
-          opacity: 0.5,
+          opacity: OSM_OPACITY,
         }),
       );
     }
@@ -120,7 +126,6 @@ export const useMap = (targetId: string, options: MapOptions) => {
     );
 
     // 全レベル: 駅レイヤー（loadStations()済みのデータからOL Featureを生成）
-    // station.geojsonのジオメトリはLineString（駅を表す短い線分）
     const stationFeatures = stations.map((s) => {
       const coords = s.lineCoordinates.map((c) => fromLonLat(c));
       const f = new Feature({
@@ -148,6 +153,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
     });
     layers.push(stationLayer);
     stationLayerRef.current = stationLayer;
+    stationSourceRef.current = stationSource;
 
     const map = new Map({
       target: targetId,
@@ -163,15 +169,40 @@ export const useMap = (targetId: string, options: MapOptions) => {
       map.setTarget(undefined);
       mapRef.current = null;
       stationLayerRef.current = null;
+      stationSourceRef.current = null;
     };
     // 初回のみ実行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 正解・誤答状態が変化したとき駅レイヤーを再描画
+  // 正解確定時：同グループの駅フィーチャのみ再描画
   useEffect(() => {
-    stationLayerRef.current?.changed();
-  }, [options.correctStationGroupName, options.wrongFeatureIds]);
+    const source = stationSourceRef.current;
+    if (!source) return;
+    if (options.correctStationGroupName !== undefined) {
+      source.getFeatures().forEach((f) => {
+        const props = f.getProperties() as { stationGroupName?: string };
+        if (props.stationGroupName === options.correctStationGroupName) f.changed();
+      });
+    } else {
+      // 問題遷移時（undefined にリセット）：全体リフレッシュでハイライト解除
+      stationLayerRef.current?.changed();
+    }
+  }, [options.correctStationGroupName]);
+
+  // 誤答追加時：追加された1フィーチャのみ再描画
+  useEffect(() => {
+    const source = stationSourceRef.current;
+    if (!source) return;
+    const ids = options.wrongFeatureIds ?? [];
+    if (ids.length > 0) {
+      const lastId = ids[ids.length - 1];
+      if (lastId) source.getFeatureById(lastId)?.changed();
+    } else {
+      // 問題遷移時（空配列にリセット）：全体リフレッシュ
+      stationLayerRef.current?.changed();
+    }
+  }, [options.wrongFeatureIds]);
 
   // クリックイベント登録
   useEffect(() => {
@@ -205,51 +236,110 @@ export const useMap = (targetId: string, options: MapOptions) => {
     if (!map || !onHover || mode !== 'browse') return;
 
     const key = map.on('pointermove', (e) => {
-      let found = false;
+      // 高頻度イベントをデバウンス（約60fps相当）
+      if (hoverDebounceRef.current) clearTimeout(hoverDebounceRef.current);
+      hoverDebounceRef.current = setTimeout(() => {
+        const currentOnHover = optionsRef.current.onHover;
+        if (!currentOnHover) return;
 
-      // 駅レイヤー優先
-      map.forEachFeatureAtPixel(
-        e.pixel,
-        (feature, layer) => {
-          if (layer !== stationLayerRef.current) return;
-          const props = feature.getProperties() as {
-            stationName?: string;
-            lineName?: string;
-            companyName?: string;
-          };
-          onHover({
-            stationName: props.stationName,
-            lineName: props.lineName ?? '',
-            companyName: props.companyName ?? '',
-            pixel: [e.pixel[0], e.pixel[1]],
-          });
-          found = true;
-          return true;
-        },
-      );
+        let found = false;
 
-      if (!found) {
-        // 路線レイヤー
-        map.forEachFeatureAtPixel(e.pixel, (feature) => {
-          const props = feature.getProperties() as { N02_003?: string; N02_004?: string };
-          if (props.N02_003 || props.N02_004) {
-            onHover({
-              lineName: props.N02_003 ?? '',
-              companyName: props.N02_004 ?? '',
+        // 駅レイヤー優先
+        map.forEachFeatureAtPixel(
+          e.pixel,
+          (feature, layer) => {
+            if (layer !== stationLayerRef.current) return;
+            const props = feature.getProperties() as {
+              stationName?: string;
+              lineName?: string;
+              companyName?: string;
+            };
+            currentOnHover({
+              stationName: props.stationName,
+              lineName: props.lineName ?? '',
+              companyName: props.companyName ?? '',
               pixel: [e.pixel[0], e.pixel[1]],
             });
             found = true;
             return true;
-          }
-        });
-      }
+          },
+        );
 
-      if (!found) onHover(null);
+        if (!found) {
+          // 路線レイヤー
+          map.forEachFeatureAtPixel(e.pixel, (feature) => {
+            const props = feature.getProperties() as { N02_003?: string; N02_004?: string };
+            if (props.N02_003 || props.N02_004) {
+              currentOnHover({
+                lineName: props.N02_003 ?? '',
+                companyName: props.N02_004 ?? '',
+                pixel: [e.pixel[0], e.pixel[1]],
+              });
+              found = true;
+              return true;
+            }
+          });
+        }
+
+        if (!found) currentOnHover(null);
+      }, 16);
     });
 
-    return () => unByKey(key);
+    return () => {
+      unByKey(key);
+      if (hoverDebounceRef.current) clearTimeout(hoverDebounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.onHover, options.mode]);
+
+  // キーボードナビゲーション（矢印キー: パン、+/-: ズーム）
+  useEffect(() => {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const view = mapRef.current?.getView();
+      if (!view) return;
+
+      const resolution = view.getResolution() ?? 1;
+      const panDist = KEYBOARD_PAN_PX * resolution;
+      const center = view.getCenter();
+      if (!center) return;
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          view.setCenter([center[0] - panDist, center[1]]);
+          e.preventDefault();
+          break;
+        case 'ArrowRight':
+          view.setCenter([center[0] + panDist, center[1]]);
+          e.preventDefault();
+          break;
+        case 'ArrowUp':
+          view.setCenter([center[0], center[1] + panDist]);
+          e.preventDefault();
+          break;
+        case 'ArrowDown':
+          view.setCenter([center[0], center[1] - panDist]);
+          e.preventDefault();
+          break;
+        case '+':
+        case '=':
+          view.setZoom((view.getZoom() ?? INITIAL_ZOOM) + 1);
+          e.preventDefault();
+          break;
+        case '-':
+          view.setZoom((view.getZoom() ?? INITIAL_ZOOM) - 1);
+          e.preventDefault();
+          break;
+        default:
+          break;
+      }
+    };
+
+    el.addEventListener('keydown', handleKeyDown);
+    return () => el.removeEventListener('keydown', handleKeyDown);
+  }, [targetId]);
 
   /**
    * 指定した駅に地図をアニメーションで移動する

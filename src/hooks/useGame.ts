@@ -35,6 +35,8 @@ export const useGame = (mode: GameMode, allStations: StationFeature[]) => {
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isFinished, setIsFinished] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // stale closureを避けるためにrefでも管理する
+  const timeLeftRef = useRef(TIME_LIMIT);
 
   const currentQuestion = gameState.questions[gameState.currentIndex];
   const isResolved = currentQuestion?.resolved ?? true;
@@ -63,17 +65,22 @@ export const useGame = (mode: GameMode, allStations: StationFeature[]) => {
     });
   }, [stopTimer]);
 
-  /** タイマー開始（問題が未確定の場合のみ） */
-  const startTimer = useCallback(() => {
+  /**
+   * タイマー開始
+   * @param from - 開始秒数（省略時はTIME_LIMITから）
+   */
+  const startTimer = useCallback((from = TIME_LIMIT) => {
     stopTimer();
-    setTimeLeft(TIME_LIMIT);
+    timeLeftRef.current = from;
+    setTimeLeft(from);
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          // タイムアウト → 不正解確定
           resolveQuestion(false);
+          timeLeftRef.current = 0;
           return 0;
         }
+        timeLeftRef.current = t - 1;
         return t - 1;
       });
     }, 1000);
@@ -87,6 +94,22 @@ export const useGame = (mode: GameMode, allStations: StationFeature[]) => {
     // currentIndex が変わるたびに再実行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.currentIndex, isFinished]);
+
+  /** バックグラウンドタブになったときタイマーを一時停止し、復帰時に再開する */
+  useEffect(() => {
+    if (mode === 'browse') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopTimer();
+      } else if (!isResolved && !isFinished) {
+        startTimer(timeLeftRef.current);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [mode, isResolved, isFinished, startTimer, stopTimer]);
 
   /**
    * 駅をクリックしたときの処理

@@ -18,6 +18,7 @@ type MapViewProps = {
 
 /**
  * OpenLayersの地図表示コンポーネント
+ * キーボード操作: 矢印キーでパン、+/-でズーム
  */
 export const MapView = ({
   mode,
@@ -54,7 +55,20 @@ export const MapView = ({
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       <Box
         id="map-container"
-        sx={{ width: '100%', height: '100%', cursor: mode !== 'browse' ? 'crosshair' : 'default' }}
+        tabIndex={0}
+        role="application"
+        aria-label={
+          mode !== 'browse'
+            ? '地図。矢印キーでスクロール、+/-でズーム。駅をクリックして回答'
+            : '地図。矢印キーでスクロール、+/-でズーム。駅や路線にホバーで情報表示'
+        }
+        sx={{
+          width: '100%',
+          height: '100%',
+          cursor: mode !== 'browse' ? 'crosshair' : 'default',
+          outline: 'none',
+          '&:focus-visible': { outline: '2px solid #1976d2' },
+        }}
       />
       {hoverInfo && <Popup info={hoverInfo} />}
     </Box>
