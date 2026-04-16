@@ -1,0 +1,3 @@
+/data/*.pmtiles
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=86400, no-transform
