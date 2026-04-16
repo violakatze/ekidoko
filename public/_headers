@@ -1,3 +1,7 @@
 /data/*.pmtiles
   Content-Type: application/octet-stream
   Cache-Control: public, max-age=86400, no-transform
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD
+  Access-Control-Allow-Headers: Range, Content-Type
+  Access-Control-Expose-Headers: Content-Range, Content-Length, Accept-Ranges
