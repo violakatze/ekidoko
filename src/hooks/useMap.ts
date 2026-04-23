@@ -86,6 +86,9 @@ export const useMap = (targetId: string, options: MapOptions) => {
   useEffect(() => {
     if (mapRef.current) return;
     const { mode, baseUrl, stations } = optionsRef.current;
+    // VITE_PMTILES_BASE_URL が設定されている場合はそちらを使用（Cloudflare Pages + R2用）
+    // 未設定の場合は baseUrl にフォールバック（GitHub Pages用）
+    const pmtilesBaseUrl = import.meta.env.VITE_PMTILES_BASE_URL ?? baseUrl;
 
     const layers = [];
 
@@ -103,7 +106,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
     if (mode === 'level2') {
       layers.push(
         new VectorTileLayer({
-          source: new PMTilesVectorSource({ url: `${baseUrl}data/prefecture.pmtiles` }),
+          source: new PMTilesVectorSource({ url: `${pmtilesBaseUrl}data/prefecture.pmtiles` }),
           style: prefectureStyle,
         }),
       );
@@ -112,7 +115,7 @@ export const useMap = (targetId: string, options: MapOptions) => {
     // 全レベル: 路線レイヤー（PMTiles）
     layers.push(
       new VectorTileLayer({
-        source: new PMTilesVectorSource({ url: `${baseUrl}data/railroad.pmtiles` }),
+        source: new PMTilesVectorSource({ url: `${pmtilesBaseUrl}data/railroad.pmtiles` }),
         style: (feature) => {
           const props = feature.getProperties() as { N02_003?: string; N02_004?: string };
           return new Style({
