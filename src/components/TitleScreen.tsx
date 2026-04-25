@@ -168,15 +168,15 @@ export const TitleScreen = ({ highScores, onStart, onResetScores }: TitleScreenP
                 「国土数値情報（鉄道データ）」（国土交通省）
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                2024年 全国データ
+                2025年 全国データ
               </Typography>
               <Link
-                href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2024.html"
+                href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 variant="body2"
               >
-                https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2024.html
+                https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html
               </Link>
             </Box>
           </Box>
